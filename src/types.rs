@@ -13,9 +13,6 @@ pub struct AgentExtractorResponse {
 impl Into<NewMetadata> for AgentExtractorResponse {
     fn into(self) -> NewMetadata {
         NewMetadata::new(
-            self.metadata.location.continent,
-            self.metadata.location.country,
-            self.metadata.location.city,
             self.metadata.post_type.to_str(),
             self.metadata.companion,
             self.metadata.duration,
@@ -38,7 +35,6 @@ impl AgentExtractorResponse {
 
 #[derive(Deserialize)]
 pub struct Metadata {
-    location: Location,
     companion: Option<String>,
     duration: Option<String>,
     budget_level: Option<String>,
@@ -46,13 +42,6 @@ pub struct Metadata {
     post_type: PostType,
     has_cost_breakdown: bool,
     best_season: Option<String>,
-}
-
-#[derive(Deserialize)]
-pub struct Location {
-    continent: Option<String>,
-    country: Option<String>,
-    city: Option<String>,
 }
 
 #[derive(Deserialize, Clone)]

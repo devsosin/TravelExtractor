@@ -45,16 +45,31 @@ async fn main() {
     loop {
         let articles = article_repo.find_detail_with_no_metadata().await.unwrap();
 
-        for article in articles.iter() {
-            let prompt = extract_prompt
-                .replace("{title}", article.title.as_ref().unwrap())
-                .replace("{content}", article.content.as_ref().unwrap());
+        // TODO: change to save_many
+        let requests = articles
+            .iter()
+            .map(|a| {
+                let prompt = extract_prompt
+                    .replace("{title}", a.title.as_ref().unwrap())
+                    .replace("{content}", a.content.as_ref().unwrap());
+                AgentTextRequest::new("", &prompt, false)
+            })
+            .collect();
 
-            let request = AgentTextRequest::new("", &prompt, false);
-            let agent_response = gemini_api
-                .generate_text(GeminiModel::Gemini3FlashPreview, request)
-                .await
-                .unwrap();
+        let agent_responses = match gemini_api
+            .batch_generate_text(GeminiModel::Gemini3FlashPreview, requests)
+            .await
+        {
+            Ok(r) => r,
+            Err(e) => {
+                tracing::error!("Agent Get Response Error: {:?}", e);
+                continue;
+            }
+        };
+
+        for i in 0..agent_responses.len() {
+            let article = &articles[i];
+            let agent_response = &agent_responses[i];
 
             let extract_response: AgentExtractorResponse = serde_json::from_str(
                 agent_response
