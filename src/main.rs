@@ -4,7 +4,10 @@ mod types;
 use std::env;
 
 use llm::{
-    LLMAPI, gemini::models::GeminiModel, traits::TextGenerationService, types::AgentTextRequest,
+    LLMAPI,
+    gemini::models::GeminiModel,
+    traits::TextGenerationService,
+    types::{AgentTextRequest, Thinking},
 };
 use repository::{
     agent::{AgentRepositoryImpl, model::NewAgentReport},
@@ -52,12 +55,17 @@ async fn main() {
                 let prompt = extract_prompt
                     .replace("{title}", a.title.as_ref().unwrap())
                     .replace("{content}", a.content.as_ref().unwrap());
-                AgentTextRequest::new("", &prompt, false)
+                AgentTextRequest::new("", &prompt, Thinking::Minimal)
             })
             .collect();
 
         let agent_responses = match gemini_api
-            .batch_generate_text(GeminiModel::Gemini3FlashPreview, requests)
+            .batch_generate_text(
+                GeminiModel::Gemini3FlashPreview,
+                "Extractor",
+                "ext",
+                requests,
+            )
             .await
         {
             Ok(r) => r,
