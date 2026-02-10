@@ -55,6 +55,10 @@ async fn main() {
                 let prompt = extract_prompt
                     .replace("{title}", a.title.as_ref().unwrap())
                     .replace("{content}", a.content.as_ref().unwrap());
+                // 본문에 정규표현식 적용
+                // let re = Regex::new(r"<[^>]+>").unwrap();
+                // let text_content = re.replace(html, "");
+
                 AgentTextRequest::new("", &prompt, Thinking::Minimal)
             })
             .collect();
@@ -76,14 +80,18 @@ async fn main() {
         };
 
         for i in 0..agent_responses.len() {
+            if let None = &agent_responses[i] {
+                continue;
+            }
+
             let article = &articles[i];
-            let agent_response = &agent_responses[i];
+            let agent_response = &agent_responses[i].as_ref().unwrap();
 
             let extract_response: AgentExtractorResponse = serde_json::from_str(
                 agent_response
                     .get_content()
                     .replace("```json", "")
-                    .replace("```", "")
+                    .replace("\n```", "")
                     .as_str(),
             )
             .unwrap();
