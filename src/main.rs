@@ -9,6 +9,7 @@ use llm::{
     traits::TextGenerationService,
     types::{AgentTextRequest, Thinking},
 };
+use regex::Regex;
 use repository::{
     agent::{AgentRepositoryImpl, model::NewAgentReport},
     article::{ArticleRepository, ArticleRepositoryImpl},
@@ -45,21 +46,25 @@ async fn main() {
 
     let extract_prompt = include_str!("../extract_prompt.txt");
 
-    loop {
-        let articles = article_repo.find_detail_with_no_metadata().await.unwrap();
+    fn clean_content(html: &str) -> String {
+        let re = Regex::new(r"<[^>]+>").unwrap();
+        let text_content = re.replace(html, "").trim().to_string();
 
-        // TODO: change to save_many
+        text_content
+    }
+
+    loop {
+        let articles = article_repo.find_no_metadata().await.unwrap();
+
         let requests = articles
             .iter()
             .map(|a| {
                 let prompt = extract_prompt
                     .replace("{title}", a.title.as_ref().unwrap())
-                    .replace("{content}", a.content.as_ref().unwrap());
-                // 본문에 정규표현식 적용
-                // let re = Regex::new(r"<[^>]+>").unwrap();
-                // let text_content = re.replace(html, "");
+                    // 본문에 정규표현식 적용
+                    .replace("{content}", &clean_content(a.content.as_ref().unwrap()));
 
-                AgentTextRequest::new("", &prompt, Thinking::Minimal)
+                AgentTextRequest::new("", &prompt, Thinking::Low)
             })
             .collect();
 
@@ -124,10 +129,20 @@ async fn main() {
                     .save_places(meta_id, places.iter().map(|p| p.into()).collect())
                     .await
                     .ok();
+            } else {
+                // 에러발생한 이유 확인
+                println!(
+                    "================ Article Info ================:\n{}-{:?}",
+                    article.id, article.title
+                );
+                println!(
+                    "================ Agent Response ================:\n{:?}",
+                    agent_response
+                );
             };
         }
 
-        if articles.len() < 20 {
+        if articles.len() < 1000 {
             break;
         }
     }

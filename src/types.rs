@@ -8,12 +8,24 @@ pub struct AgentExtractorResponse {
     metadata: Metadata,
     summary_keywords: Vec<String>,
     mentioned_places: Vec<MentiondPlace>,
+    location: Location,
 }
 
+#[derive(Deserialize)]
+pub struct Location {
+    continent: Option<String>,
+    country: Option<String>,
+    city: Option<String>,
+}
+
+// location field 추가..?
 impl Into<NewMetadata> for AgentExtractorResponse {
     fn into(self) -> NewMetadata {
         NewMetadata::new(
             self.metadata.post_type.to_str(),
+            self.location.continent,
+            self.location.country,
+            self.location.city,
             self.metadata.companion,
             self.metadata.duration,
             self.metadata.budget_level,
